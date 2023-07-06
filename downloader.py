@@ -252,7 +252,7 @@ def merge_pdf(paper_filename, jpg_dir):
     print("合并pdf文件")
     doc = fitz.open()
     imgs = []
-    filename = f'./paper/{paper_filename}'
+    filename = f'./papers/{paper_filename}'
     img_path = './{}/'.format(jpg_dir)
     # if len(os.listdir('./{}/'.format(jpg_dir)))<100:
     #     print("文章{}下载错误，跳过".format(paper_filename))
@@ -269,8 +269,6 @@ def merge_pdf(paper_filename, jpg_dir):
         pdf_img = fitz.open("pdf", pdf_bytes)
         doc.insert_pdf(pdf_img)
         pdf_img.close()
-    directory = os.path.dirname(filename)
-    os.makedirs(directory, exist_ok=True)
     doc.save(filename)
     doc.close()
     shutil.rmtree('./{}'.format(jpg_dir))
