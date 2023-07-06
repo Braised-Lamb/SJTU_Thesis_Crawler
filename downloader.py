@@ -228,20 +228,24 @@ def download_jpg(url: str, jpg_dir: str):
     i = 1
     while(True):
         fig_url = "http://thesis.lib.sjtu.edu.cn:8443/read/" + urls['list'][0]['src'].split('_')[0] + "_{0:05d}".format(i) + ".jpg"
-        res_res = result.get(fig_url, headers=headers)
-        response = res_res.content
-        # response = result.get(fig_url, headers=headers).content 
-        if requests.get(fig_url, headers=headers).status_code == 404:
-            print("HTTP状态 404 - 未找到")
-            break
-        
-        while len(response) < 2000 and len(response) != 746:
+        response = result.get(fig_url, headers=headers).content
+        rtext = result.get(fig_url, headers=headers).text
+        # print(fig_url)
+        if ('HTTP状态 404 - 未找到' in result.get(fig_url, headers=headers).text):
+            for t in range(10):
+                time.sleep(2)
+                rtext = result.get(fig_url, headers=headers).text
+                if ('HTTP状态 404 - 未找到' in rtext): pass
+                else: break
+            if ('HTTP状态 404 - 未找到' in rtext):
+                print(f"{fig_url}: HTTP状态 404 - 未找到")
+                break
+        while len(response) < 2000:
             response = result.get(fig_url, headers=headers).content
-            print(len(response))
-        if len(response) == 746:
-            #print(response)
-            #print("资源无法访问了，网站挂了")
-            break
+        # if len(response) == 746:
+        #     #print(response)
+        #     #print("资源无法访问了，网站挂了")
+        #     break
         with open('./{}/{}.jpg'.format(jpg_dir, i), 'wb') as f:
             f.write(response)
             # print(len(response))
