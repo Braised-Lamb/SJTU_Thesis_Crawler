@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 '''
 @File    :   downloader.py
@@ -6,8 +7,13 @@
 @Version :   1.0
 @Contact :   273601727@qq.com
 @WebSite    :   https://blog.oliverxu.cn
-'''
 
+@Modified by    :   gaoyang
+@Modified time  :   2023/07/06 13:10:05
+@Description    :   Modified some parameters based on current website; 
+                    modified the code to merge the pdf;
+                    added code to delete jpg files after merging pdf files;
+'''
 # here put the import lib
 from __future__ import print_function, unicode_literals
 import os
@@ -126,7 +132,7 @@ def arguments_extract(answers):
         px[answers['px']])
     print(info_url)
     pages = answers['page'].split('-')
-    pages = [int(pages[0]), int(pages[1])]
+    pages = [int(pages[0])]
     return info_url, pages
 
 def confirmation(papers):
@@ -173,7 +179,7 @@ def download_main_info(info_url: str, pages: list):
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'
     }
     result = requests.Session()
-    for page in range(pages[0], pages[1]+1):
+    for page in range(pages[0], pages[0]+1):
         print("正在抓取第{}页的info".format(page))
         info_url_construction = info_url + str(page)
         response = result.get(info_url_construction, headers=headers, allow_redirects=False)
@@ -222,37 +228,49 @@ def download_jpg(url: str, jpg_dir: str):
     i = 1
     while(True):
         fig_url = "http://thesis.lib.sjtu.edu.cn:8443/read/" + urls['list'][0]['src'].split('_')[0] + "_{0:05d}".format(i) + ".jpg"
-        response = result.get(fig_url, headers=headers).content
-        while len(response) < 2000 and len(response) != 1049:
+        res_res = result.get(fig_url, headers=headers)
+        response = res_res.content
+        # response = result.get(fig_url, headers=headers).content 
+        if requests.get(fig_url, headers=headers).status_code == 404:
+            print("HTTP状态 404 - 未找到")
+            break
+        
+        while len(response) < 2000 and len(response) != 746:
             response = result.get(fig_url, headers=headers).content
-        if len(response) == 1049:
+            print(len(response))
+        if len(response) == 746:
             #print(response)
             #print("资源无法访问了，网站挂了")
             break
         with open('./{}/{}.jpg'.format(jpg_dir, i), 'wb') as f:
             f.write(response)
-        i = i + 1
+            # print(len(response))
         print("正在采集第{}页".format(i))
+        i = i + 1
 
 def merge_pdf(paper_filename, jpg_dir):
+    print("合并pdf文件")
     doc = fitz.open()
     imgs = []
+    filename = f'./paper/{paper_filename}'
     img_path = './{}/'.format(jpg_dir)
-    if len(os.listdir('./{}/'.format(jpg_dir)))<100:
-        print("文章{}下载错误，跳过".format(paper_filename))
-        shutil.rmtree('./{}'.format(jpg_dir))
-        return
+    # if len(os.listdir('./{}/'.format(jpg_dir)))<100:
+    #     print("文章{}下载错误，跳过".format(paper_filename))
+    #     shutil.rmtree('./{}'.format(jpg_dir))
+    #     return
     for img in os.listdir('./{}/'.format(jpg_dir)):
         imgs.append(img)
     imgs.sort(key=lambda x:int(x[:-4]))
     for img in imgs:
-        img_file = img_path + img
-        imgdoc = fitz.open(img_file)
-        pdfbytes = imgdoc.convertToPDF()
-        pdf_name = str(img[:-4]) + '.pdf'
-        imgpdf = fitz.open(pdf_name, pdfbytes)
-        doc.insertPDF(imgpdf)
-    filename = './papers/' + paper_filename
+        img = fitz.open(img_path + img)
+        rect = img[0].rect
+        pdf_bytes = img.convert_to_pdf()
+        img.close()
+        pdf_img = fitz.open("pdf", pdf_bytes)
+        doc.insert_pdf(pdf_img)
+        pdf_img.close()
+    directory = os.path.dirname(filename)
+    os.makedirs(directory, exist_ok=True)
     doc.save(filename)
     doc.close()
     shutil.rmtree('./{}'.format(jpg_dir))
