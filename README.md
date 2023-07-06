@@ -21,3 +21,5 @@ python downloader.py
 2. 引入协程，提高并发（以前试过，不过由于网站太慢了，并行就崩了），多进程的版本可以看[commit](https://github.com/olixu/SJTU_Thesis_Crawler/tree/7d712f009195f339d1cc42e6bf841db57f881052)
 3. 改进交互能力及已存在的bug
 
+## 说明（by lamb）
+1. 学长写的代码在23年用起来好像有些问题，做了部分修改，配适了新的函数和网页
