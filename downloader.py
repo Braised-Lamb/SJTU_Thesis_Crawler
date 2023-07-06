@@ -45,7 +45,7 @@ def main():
         print('Bye!')
 
 def paper_download(papers):
-    jpg_dir = time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()) + "".join(random.sample('zyxwvutsrqponmlkjihgfedcba23429837498234',5))
+    jpg_dir = "tmpjpgs"
     for paper in papers:
         print(100*'@')
         paper_filename = paper['year'] + '_' + paper['filename'] + '_' + paper['author'] + '_' + paper['mentor'] + '.pdf'

@@ -1,0 +1,5 @@
+# 忽略pdf文件夹
+papers/
+
+# 忽略临时图片文件夹
+tmpjpgs/
