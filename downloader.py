@@ -9,10 +9,8 @@
 @WebSite    :   https://blog.oliverxu.cn
 
 @Modified by    :   lamb
-@Modified time  :   2023/07/06 13:10:05
-@Description    :   Modified some parameters based on current website; 
-                    modified the code to merge the pdf;
-                    added code to delete jpg files after merging pdf files;
+@Modified time  :   2025/12/25 09:54:25
+@Description    :   modified code with PyInquirer for better user interaction
 '''
 # here put the import lib
 from __future__ import print_function, unicode_literals
@@ -26,7 +24,7 @@ from collections import defaultdict
 from urllib.parse import quote
 import requests
 from lxml import etree
-import fitz
+import pymupdf as fitz
 from PyInquirer import style_from_dict, Token, prompt
 
 def main():
@@ -37,7 +35,9 @@ def main():
     """
     answers = search_arguments()
     info_url, pages = arguments_extract(answers)
-    papers = download_main_info(info_url, pages)
+    papers, total_count, total_pages = download_main_info(info_url, pages)
+    if total_count > 0:
+        print(f"共找到 {total_count} 条记录，共 {total_pages} 页")
     will_download = confirmation(papers)['confirmation']
     if will_download:
         paper_download(papers)
@@ -174,6 +174,8 @@ def init(jpg_dir):
 
 def download_main_info(info_url: str, pages: list):
     papers = []
+    total_count = 0
+    total_pages = 0
     info_url = info_url
     headers = {
         'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'
@@ -184,6 +186,29 @@ def download_main_info(info_url: str, pages: list):
         info_url_construction = info_url + str(page)
         response = result.get(info_url_construction, headers=headers, allow_redirects=False)
         html = etree.HTML(response.content, etree.HTMLParser())
+        
+        # 获取总记录数和总页数
+        try:
+            import re
+            # 从页面文本中查找 "共 XXX 条记录" 模式
+            page_text = ''.join(html.xpath('//text()'))
+            
+            # 查找 "，共" 和 "条记录" 之间的数字
+            match = re.search(r'，共\s*(\d+)\s*条记录', page_text)
+            if match:
+                total_count = int(match.group(1))
+                total_pages = (total_count + 19) // 20  # 每页20条，向上取整
+                print(f"检索到总记录数: {total_count}, 总页数: {total_pages}")
+            else:
+                # 尝试其他模式
+                match = re.search(r'共\s*(\d+)\s*条', page_text)
+                if match:
+                    total_count = int(match.group(1))
+                    total_pages = (total_count + 19) // 20
+                    print(f"检索到总记录数: {total_count}, 总页数: {total_pages}")
+        except Exception as e:
+            print(f"提取总记录数时出错: {e}")
+        
         for i in range(2, 22):
             # 有些是论文保密，所以link需要错误处理
             info_dict = defaultdict(str)
@@ -202,8 +227,18 @@ def download_main_info(info_url: str, pages: list):
             except Exception as e:
                 #print(e)
                 pass
+    
+    # 如果没有从页面提取到总数，根据实际抓取的数据估算
+    if total_count == 0 and len(papers) > 0:
+        # 如果当前页有数据，至少说明有这一页
+        total_count = len(papers)
+        total_pages = pages[0]
+        print(f"未能从页面提取总数，根据当前数据估算: 至少 {total_count} 条记录")
+    
     print("总共抓取到{}个元数据信息".format(len(papers)))
-    return papers
+    
+    # 返回论文列表、总记录数和总页数
+    return papers, total_count, total_pages
 
 def download_jpg(url: str, jpg_dir: str):
     """下载论文链接为jpg
@@ -216,10 +251,25 @@ def download_jpg(url: str, jpg_dir: str):
     result = requests.Session()
     print("开始获取图片地址")
     response = result.get(url, headers=headers, allow_redirects=False)
+    
+    if 'Location' not in response.headers:
+        print("错误：无法获取重定向地址，可能是论文未公开或链接失效")
+        return
+    
     url = response.headers['Location']
     response = result.get(url, headers=headers, allow_redirects=False)
+    
+    if 'Location' not in response.headers:
+        print("错误：第二次重定向失败")
+        return
+    
     url = response.headers['Location']
     response = result.get(url, headers=headers, allow_redirects=False)
+    
+    if 'Location' not in response.headers:
+        print("错误：第三次重定向失败")
+        return
+    
     url_bix = response.headers['Location'].split('?')[1]
     url = "http://thesis.lib.sjtu.edu.cn:8443/read/jumpServlet?page=1&" + url_bix
     response = result.get(url, headers=headers, allow_redirects=False)
