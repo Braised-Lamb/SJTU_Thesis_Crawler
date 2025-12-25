@@ -10,3 +10,7 @@ tmpjpgs/
 # 忽略Python编译生成的缓存文件夹
 __pycache__/
 *.pyc
+
+# 忽略构建输出文件夹
+dist/
+build/

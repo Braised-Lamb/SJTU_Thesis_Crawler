@@ -24,8 +24,15 @@ from collections import defaultdict
 from urllib.parse import quote
 import requests
 from lxml import etree
-import pymupdf as fitz
-from PyInquirer import style_from_dict, Token, prompt
+import pymupdf
+
+# PyInquirer is only needed for CLI mode, make it optional for GUI packaging
+try:
+    from PyInquirer import style_from_dict, Token, prompt
+    PYINQUIRER_AVAILABLE = True
+except ImportError:
+    PYINQUIRER_AVAILABLE = False
+    style_from_dict = Token = prompt = None
 
 def main():
     """
@@ -61,6 +68,9 @@ def paper_download(papers):
             print(e)
 
 def search_arguments():
+    if not PYINQUIRER_AVAILABLE:
+        raise ImportError("PyInquirer is required for CLI mode. Install it with: pip install PyInquirer")
+    
     style = style_from_dict({
                 Token.Separator: '#cc5454',
                 Token.QuestionMark: '#673ab7 bold',
@@ -136,6 +146,9 @@ def arguments_extract(answers):
     return info_url, pages
 
 def confirmation(papers):
+    if not PYINQUIRER_AVAILABLE:
+        raise ImportError("PyInquirer is required for CLI mode. Install it with: pip install PyInquirer")
+    
     print("\033[\033[1;32m 检索到了以下{}篇文章\033[0m".format(len(papers)))
     for i in papers:
         print('\033[1;31m 题目\033[0m', i['filename'], '\033[1;34m 作者\033[0m', i['author'], '\033[1;36m 导师\033[0m', i['mentor'], '\033[1;35m 年份\033[0m', i['year'])
@@ -304,7 +317,7 @@ def download_jpg(url: str, jpg_dir: str):
 
 def merge_pdf(paper_filename, jpg_dir):
     print("合并pdf文件")
-    doc = fitz.open()
+    doc = pymupdf.open()
     imgs = []
     filename = f'./papers/{paper_filename}'
     img_path = './{}/'.format(jpg_dir)
@@ -316,11 +329,11 @@ def merge_pdf(paper_filename, jpg_dir):
         imgs.append(img)
     imgs.sort(key=lambda x:int(x[:-4]))
     for img in imgs:
-        img = fitz.open(img_path + img)
+        img = pymupdf.open(img_path + img)
         rect = img[0].rect
         pdf_bytes = img.convert_to_pdf()
         img.close()
-        pdf_img = fitz.open("pdf", pdf_bytes)
+        pdf_img = pymupdf.open("pdf", pdf_bytes)
         doc.insert_pdf(pdf_img)
         pdf_img.close()
     doc.save(filename)

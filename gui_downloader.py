@@ -664,6 +664,10 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    
+    # 使用Fusion样式确保跨平台一致性
+    app.setStyle('Fusion')
+    
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
