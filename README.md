@@ -32,6 +32,8 @@ python downloader.py
 
 ## GUI界面说明
 
+![alt text](attachments/image.png)
+
 1. **搜索参数设置**
    - 选择检索方式（主题、题名、关键词、作者、院系、专业、导师、年份）
    - 选择学位类型（硕士/博士/全部）
