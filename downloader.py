@@ -8,7 +8,7 @@
 @Contact :   273601727@qq.com
 @WebSite    :   https://blog.oliverxu.cn
 
-@Modified by    :   gaoyang
+@Modified by    :   lamb
 @Modified time  :   2023/07/06 13:10:05
 @Description    :   Modified some parameters based on current website; 
                     modified the code to merge the pdf;
