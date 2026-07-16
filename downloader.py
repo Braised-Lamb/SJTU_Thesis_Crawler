@@ -185,6 +185,26 @@ def init(jpg_dir):
     except Exception as e:
         print(e)
 
+
+def open_pdf_document(*args, **kwargs):
+    """Open a PDF document with a compatible PyMuPDF API."""
+    open_func = getattr(pymupdf, 'open', None)
+    if callable(open_func):
+        return open_func(*args, **kwargs)
+
+    document_func = getattr(pymupdf, 'Document', None)
+    if not callable(document_func):
+        raise AttributeError("PyMuPDF does not expose open() or Document()")
+
+    if len(args) == 0:
+        return document_func(**kwargs)
+    if len(args) == 1 and not kwargs:
+        return document_func(args[0])
+    if len(args) == 2 and args[0] == 'pdf' and not kwargs:
+        return document_func(stream=args[1], filetype='pdf')
+
+    return document_func(*args, **kwargs)
+
 def download_main_info(info_url: str, pages: list):
     papers = []
     total_count = 0
@@ -317,7 +337,7 @@ def download_jpg(url: str, jpg_dir: str):
 
 def merge_pdf(paper_filename, jpg_dir):
     print("合并pdf文件")
-    doc = pymupdf.open()
+    doc = open_pdf_document()
     imgs = []
     filename = f'./papers/{paper_filename}'
     img_path = './{}/'.format(jpg_dir)
@@ -329,11 +349,11 @@ def merge_pdf(paper_filename, jpg_dir):
         imgs.append(img)
     imgs.sort(key=lambda x:int(x[:-4]))
     for img in imgs:
-        img = pymupdf.open(img_path + img)
+        img = open_pdf_document(img_path + img)
         rect = img[0].rect
         pdf_bytes = img.convert_to_pdf()
         img.close()
-        pdf_img = pymupdf.open("pdf", pdf_bytes)
+        pdf_img = open_pdf_document('pdf', pdf_bytes)
         doc.insert_pdf(pdf_img)
         pdf_img.close()
     doc.save(filename)
